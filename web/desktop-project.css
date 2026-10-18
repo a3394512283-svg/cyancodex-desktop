@@ -1,0 +1,150 @@
+/* ==========================================================================
+   web/desktop-project.css —— 「我的 → 本地项目」（datapack 编辑器）样式
+
+   ★ 独立文件，不写进 desktop-extra.css：那个文件有并行任务在用，两边同时
+     追加会互相覆盖。类名统一 cc-pj- 前缀，和 desktop.js 生成的结构不撞车。
+   ★ 颜色全部走 style.css 里的 CSS 变量，深/浅色主题自动跟随。
+   ========================================================================== */
+
+/* 弹层默认 max-width 只有 540px，放不下「左树 + 右编辑器」，这里单独放宽。
+   选择器带上 #cc-dsk-sheet 提高优先级，避免和 style.css 的 .sheet-box 打架。 */
+#cc-dsk-sheet.cc-pj-sheet .sheet-box {
+  width: min(96vw, 1120px);
+  max-width: 1120px;
+  max-height: 88vh;
+  padding: 16px 18px 18px;
+}
+
+/* ------------------------------------------------------------ 工具栏 */
+
+.cc-pj-bar {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.cc-pj-bar .sp { flex: 1; }
+.cc-pj-root {
+  font-size: 11.5px; color: var(--text3); max-width: 340px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  direction: rtl;              /* 路径太长时优先显示尾部（文件名那一段） */
+  text-align: left;
+}
+
+/* ------------------------------------------------------------ 主体 */
+
+.cc-pj-body {
+  display: grid; grid-template-columns: 236px 1fr; gap: 10px;
+  height: min(56vh, 460px);
+}
+/* 窄窗口（桌面版最小 940px，但用户可能分屏）退化成上下布局 */
+@media (max-width: 760px) {
+  .cc-pj-body { grid-template-columns: 1fr; height: auto; }
+  .cc-pj-side { max-height: 180px; }
+}
+
+/* ---- 左侧文件树 ---- */
+.cc-pj-side {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  overflow: auto; padding: 6px; font-size: 12.5px;
+}
+.cc-pj-empty {
+  color: var(--text3); font-size: 12px; padding: 14px 10px; line-height: 1.65;
+}
+.cc-pj-node > .cc-pj-kids { display: none; padding-left: 11px; }
+.cc-pj-node.open > .cc-pj-kids { display: block; }
+
+.cc-pj-row {
+  display: flex; align-items: center; gap: 5px; padding: 4px 6px;
+  border-radius: 7px; cursor: pointer; color: var(--text2);
+  transition: background .12s, color .12s;
+}
+.cc-pj-row:hover { background: var(--card2); color: var(--text); }
+.cc-pj-tw {
+  width: 10px; flex: none; display: inline-block; text-align: center;
+  color: var(--text3); font-size: 10px; transition: transform .12s;
+}
+.cc-pj-dir.open > .cc-pj-row > .cc-pj-tw { transform: rotate(90deg); }
+.cc-pj-nm {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cc-pj-sz { color: var(--text3); font-size: 10.5px; flex: none; }
+.cc-pj-dir > .cc-pj-row { color: var(--text); font-weight: 600; }
+
+/* 非文本文件（png / zip …）压暗，点了会提示打不开 */
+.cc-pj-bin > .cc-pj-row { opacity: .5; }
+.cc-pj-bin > .cc-pj-row .cc-pj-nm { font-style: italic; }
+
+/* 当前打开的文件 */
+.cc-pj-file.on > .cc-pj-row {
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--text);
+}
+
+/* ---- 右侧编辑器 ---- */
+.cc-pj-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.cc-pj-editor {
+  flex: 1; width: 100%; min-height: 240px; resize: none; padding: 10px 12px;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--line); border-radius: 12px; outline: none;
+  /* 行高必须与 desktop-project.js 里的 LINE_H 一致（22px），跳行靠它估算 */
+  font: 12.5px/22px ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  tab-size: 2; white-space: pre; overflow: auto;
+}
+.cc-pj-editor:focus { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.cc-pj-editor[disabled] { opacity: .6; cursor: not-allowed; }
+
+.cc-pj-status {
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+  font-size: 11.5px; color: var(--text3); padding: 0 4px; min-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.cc-pj-status span:first-child {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cc-pj-status .bad { color: var(--red); }
+
+/* ------------------------------------------------------------ 校验结果 */
+
+.cc-pj-issues {
+  margin-top: 10px; max-height: 148px; overflow: auto;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+}
+.cc-pj-issues:empty { display: none; }      /* 没校验过就完全不占位 */
+.cc-pj-iss {
+  display: flex; gap: 9px; align-items: baseline; padding: 6px 10px;
+  font-size: 12px; cursor: pointer; border-bottom: 1px solid var(--line);
+}
+.cc-pj-iss:last-child { border-bottom: 0; }
+.cc-pj-iss:hover { background: var(--card2); }
+.cc-pj-iss .f {
+  flex: none; color: var(--text2); font-variant-numeric: tabular-nums;
+  max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cc-pj-iss .lv {
+  flex: none; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 5px;
+}
+.cc-pj-iss.err .lv { color: var(--red); background: color-mix(in srgb, var(--red) 14%, transparent); }
+.cc-pj-iss.warn .lv { color: var(--gold); background: color-mix(in srgb, var(--gold) 14%, transparent); }
+.cc-pj-iss .m { color: var(--text2); min-width: 0; }
+.cc-pj-ok { padding: 12px; color: var(--green); font-size: 12.5px; }
+
+/* ------------------------------------------------------------ 新建文件对话框 */
+
+/* Electron 不支持 window.prompt，所以自带一个极简输入弹层 */
+.cc-pj-mask {
+  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.cc-pj-dlg {
+  width: min(92vw, 360px); background: var(--bg2); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px; box-shadow: var(--shadow);
+  font-size: 13.5px; color: var(--text);
+}
+.cc-pj-dlg b { display: block; margin-bottom: 10px; font-size: 14.5px; }
+.cc-pj-inp {
+  width: 100%; padding: 9px 11px; border-radius: 10px; font-size: 13px;
+  background: var(--card); color: var(--text); border: 1px solid var(--line);
+  outline: none; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.cc-pj-inp:focus { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+.cc-pj-dlg-act { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }

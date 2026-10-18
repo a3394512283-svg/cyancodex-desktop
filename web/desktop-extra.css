@@ -1,0 +1,322 @@
+/* ============================================================================
+ * web/desktop-extra.css —— desktop-social.js 的样式
+ *
+ * 为什么单独一个文件：desktop.js / desktop.css 都已定稿，新功能的样式全放这里，
+ * 由 electron/main.js 的 DESKTOP_STYLES 追加注入（在 desktop.css 之后，能覆盖）。
+ * 所有类名统一 cc-so- 前缀，避免和 style.css 里的通用类打架。
+ * 颜色一律走 CSS 变量，浅色/深色主题自动跟着变。
+ * ========================================================================== */
+
+/* ---------------------------------------------------- 广场：操作条 */
+
+.cc-so-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--line);
+}
+
+.cc-so-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--card2, #1B2A22) 70%, transparent);
+  color: var(--text2);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: color .16s, border-color .16s, background .16s, transform .1s;
+}
+.cc-so-act b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cc-so-act:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--green) 45%, var(--line));
+}
+.cc-so-act:active { transform: scale(.96); }
+
+/* 点过赞：数字变红、爱心跟着红 */
+.cc-so-act.on,
+.cc-so-act.on .cc-so-heart {
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 42%, var(--line));
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+}
+
+.cc-so-act:disabled {
+  opacity: .42;
+  cursor: default;
+}
+.cc-so-act:disabled:hover {
+  color: var(--text2);
+  border-color: var(--line);
+}
+
+.cc-so-heart { transition: transform .16s; }
+.cc-so-act:hover .cc-so-heart { transform: scale(1.15); }
+
+/* ---------------------------------------------------- 广场：发动态按钮 */
+
+.cc-so-compose {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 10px;
+  padding: 8px 14px;
+  border-radius: 11px;
+  border: 1px solid color-mix(in srgb, var(--green) 34%, var(--line));
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .16s, border-color .16s;
+}
+.cc-so-compose:hover {
+  background: color-mix(in srgb, var(--green) 20%, transparent);
+  border-color: color-mix(in srgb, var(--green) 55%, var(--line));
+}
+.cc-so-compose svg { display: block; }
+
+/* ---------------------------------------------------- 指令详情弹层 */
+
+.cc-so-dt { display: flex; flex-direction: column; gap: 10px; }
+
+.cc-so-dt-tt {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+}
+.cc-so-dt-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text2);
+}
+
+.cc-so-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.cc-so-tags i {
+  font-style: normal;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  color: var(--sky);
+  background: color-mix(in srgb, var(--sky) 14%, transparent);
+}
+
+.cc-so-dt-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.cc-so-dt-meta .r { margin-left: auto; color: var(--green); }
+
+/* 指令代码块：等宽 + 可横向滚动，长指令不换行更好读 */
+.cc-so-code-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.cc-so-code {
+  margin: 0;
+  max-height: 42vh;
+  overflow: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12.5px;
+  line-height: 1.75;
+  white-space: pre;
+  -webkit-user-select: text;
+  user-select: text;
+  tab-size: 2;
+}
+
+/* 付费未解锁：不显示代码，只给价格和购买入口 */
+.cc-so-locked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--gold) 45%, var(--line));
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
+  color: var(--gold);
+  font-size: 12.5px;
+}
+.cc-so-locked span { flex: 1; min-width: 0; line-height: 1.6; }
+
+.cc-so-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.cc-so-stats b { color: var(--text2); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.cc-so-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------------------------------------------------- 评论块（广场 + 详情共用） */
+
+.cc-so-cmt { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+.cc-so-cmt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.cc-so-cmt-bar { display: flex; gap: 8px; }
+.cc-so-cmt-in {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+.cc-so-cmt-in:focus { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+
+/* ---------------------------------------------------- 插件列表 */
+
+.cc-so-pl-row {
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  margin-bottom: 9px;
+}
+
+.cc-so-pl-hd { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.cc-so-pl-hd b { font-size: 13.5px; color: var(--text); }
+.cc-so-pl-hd small { font-size: 10.5px; color: var(--text3); }
+
+.cc-so-pl-desc {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text2);
+}
+
+.cc-so-pl-ft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 9px;
+}
+.cc-so-pl-author { flex: 1; min-width: 0; font-size: 11.5px; color: var(--green); }
+
+/* 卡片可点开详情：给个手型，别让人猜 */
+.cc-lib-card { cursor: pointer; }
+.cc-lib-card .cc-lib-cp { cursor: pointer; }
+
+/* ============================================================================
+ * 自动更新弹层（desktop-update.js，cc-up- 前缀）
+ *
+ * ★ 注意：本文件是几个桌面增强脚本共用的样式表。下面这一节不属于广场/插件
+ *   功能，是「发现新版本」弹层的样式，按 desktop-update.js 里的 DOM 结构写的。
+ *   两拨人同时改这个文件时务必「追加」，不要整文件覆盖。
+ * ========================================================================== */
+
+.cc-up-hd {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+
+.cc-up-ico {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  box-sizing: border-box;
+  border-radius: 11px;
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 13%, transparent);
+}
+
+.cc-up-hd-txt { display: flex; flex-direction: column; gap: 2px; }
+.cc-up-hd-txt b { font-size: 15px; color: var(--text); }
+.cc-up-hd-txt small { font-size: 11px; color: var(--text3); }
+
+.cc-up-notes {
+  margin: 0 0 12px;
+  padding: 10px 14px 10px 28px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: var(--card2, #1B2A22);
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: var(--text2);
+}
+.cc-up-notes li { margin: 2px 0; }
+
+.cc-up-empty {
+  margin-bottom: 12px;
+  font-size: 12.5px;
+  color: var(--text3);
+}
+
+.cc-up-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.cc-up-meta b {
+  font-weight: 600;
+  color: var(--text2);
+  word-break: break-all;
+}
+
+/* 进度条：外层定高 + 内层 <i> 用 width% 推进（desktop-update.js 直接改 i 的 width） */
+.cc-up-prog { margin-bottom: 12px; }
+.cc-up-prog[hidden] { display: none; }
+
+.cc-up-bar {
+  height: 7px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--line) 80%, transparent);
+}
+.cc-up-bar > i {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--green-d), var(--green));
+  transition: width .18s linear;
+}
+
+.cc-up-pct {
+  margin-top: 7px;
+  font-size: 11.5px;
+  color: var(--text3);
+  font-variant-numeric: tabular-nums;
+}
+
+.cc-up-acts { display: flex; flex-wrap: wrap; gap: 8px; }

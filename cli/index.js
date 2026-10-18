@@ -23,6 +23,7 @@ const { spawnSync, spawn } = require("child_process");
 const C = require("../core/config");
 const G = require("../core/gen");
 const API = require("../core/api");
+const PJ = require("./project");   // lint / pack / watch —— 本地工程管理
 
 /* ------------------------------------------------------------------ 输出 */
 
@@ -207,6 +208,10 @@ ${cBold("例子")}
   cyancodex gen tdisplay --objective coins --name 金币 --line "金币:@s/coins" --copy
   cyancodex ai "做一个倒计时计分板，初始 60 秒" -o timer.mcfunction
   cyancodex lib search 计分板 --size 5 --json
+
+  lint <文件|目录>        校验 .mcfunction 语法（引号/斜杠/中文标点/execute）
+  pack <目录> [-o out]    打包成 .mcpack（先 lint，有错误不打）
+  watch <目录> [--pack]   监听目录，改动即重新校验（配合 --pack 保存即部署）
 `;
 
 /* ---------------------------------------------------------- gen */
@@ -646,6 +651,13 @@ async function main() {
       return cmdHistory(args);
     case "update":
       return cmdUpdate();
+    /* ---- 本地工程（桌面端独有的价值：手机上没有文件系统） ---- */
+    case "lint": case "check":
+      return PJ.cmdLint(args._);
+    case "pack": case "build":
+      return PJ.cmdPack(args._);
+    case "watch": case "dev":
+      return PJ.cmdWatch(args._);
     default:
       // 兼容 `cyancodex tdisplay ...` 这种省略 gen 的写法
       if (["tdisplay", "enumerate", "scroll", "music", "rawjson", "instruments"].includes(cmd)) {

@@ -21,6 +21,9 @@ const {
 } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
+const crypto = require("crypto");
+const { spawn } = require("child_process");
 
 const C = require("../core/config");
 const server = require("../server");
@@ -171,7 +174,12 @@ function createWindow() {
           const probe = await win.webContents.executeJavaScript(
             "(async()=>{const o={title:document.title,desktop:document.documentElement.dataset.desktop||null," +
             "tools:!!document.getElementById('cc-dsk-tools'),bridge:!!window.cyancodex," +
-            "store:!!(window.cyancodex&&window.cyancodex.store)};" +
+            "store:!!(window.cyancodex&&window.cyancodex.store)," +
+            "cc:!!window.__cc,ccKeys:window.__cc?Object.keys(window.__cc).length:0," +
+            // ★ 各扩展模块自己在 window 上挂就绪标记（__ccUpdateReady 等）。
+            //   不要去点击导航来验证 —— 点击会重建 DOM，executeJavaScript 的
+            //   Promise 永远不 resolve，整个自检会挂死。
+            "upd:!!window.__ccUpdateReady,soc:!!window.__ccSocialReady,prj:!!window.__ccProjectReady};" +
             "try{const r=await fetch('/api/v1/app/version');const j=await r.json();" +
             "o.api=r.status;o.latest=j&&j.latest;}catch(e){o.apiErr=String(e).slice(0,80);}" +
             "return o;})()", true
@@ -198,16 +206,43 @@ function createWindow() {
 
 /* ---------------------------------------------------- 桌面层（CSS + JS） */
 
-function injectDesktopLayer(w) {
-  try {
-    const css = fs.readFileSync(path.join(__dirname, "..", "web", "desktop.css"), "utf8");
-    w.webContents.insertCSS(css);
-  } catch (_) { /* 没有就用默认样式 */ }
+/* ★ 桌面增强层拆成多个文件，按顺序注入。
+   好处：几个功能各写各的文件，互不覆盖 —— 否则所有扩展都挤在 desktop.js 里，
+   多人/多任务并行改同一个文件必然冲突。
+   顺序有讲究：desktop.js 提供公共工具（esc/toast/sheet/mi/CC 等），必须在最前面。 */
+const DESKTOP_SCRIPTS = [
+  "desktop.js",          // 公共层：工具函数、导航、首页、指令库、账号
+  "desktop-update.js",   // 自动更新
+  "desktop-social.js",   // 广场互动 / 指令详情 / 插件安装
+  "desktop-project.js",  // 本地项目目录（datapack 管理）
+];
+const DESKTOP_STYLES = [
+  "desktop.css",
+  "desktop-extra.css",     // 自动更新 + 广场互动的样式
+  "desktop-project.css",   // 本地项目目录的样式
+];
 
-  try {
-    const js = fs.readFileSync(path.join(__dirname, "..", "web", "desktop.js"), "utf8");
-    w.webContents.executeJavaScript(js, true).catch(() => {});
-  } catch (_) { /* ignore */ }
+function injectDesktopLayer(w) {
+  for (const f of DESKTOP_STYLES) {
+    try {
+      const css = fs.readFileSync(path.join(__dirname, "..", "web", f), "utf8");
+      w.webContents.insertCSS(css);
+    } catch (_) { /* 文件不存在就跳过 */ }
+  }
+
+  // 串行注入：后一个可能依赖前一个挂到 window 上的工具
+  (async () => {
+    for (const f of DESKTOP_SCRIPTS) {
+      try {
+        const js = fs.readFileSync(path.join(__dirname, "..", "web", f), "utf8");
+        await w.webContents.executeJavaScript(js, true);
+        console.log("[inject] ok:", f);
+      } catch (e) {
+        // ★ 不要静默吞掉：某个扩展文件写错时，必须能看到是哪个、错在哪
+        console.error("[inject] FAIL:", f, "-", (e && e.message ? e.message : String(e)).slice(0, 300));
+      }
+    }
+  })().catch(() => {});
 }
 
 /* ---------------------------------------------------------------- 通知 */
@@ -517,6 +552,150 @@ ipcMain.handle("desktop:restore", () => doRestore());
 ipcMain.handle("desktop:hide", () => { if (win) win.hide(); return { ok: true }; });
 ipcMain.handle("desktop:quit", () => { quitting = true; app.quit(); return { ok: true }; });
 
+/* ---- 应用内更新：下载 / 安装 ----------------------------------------------
+ * ★ 为什么不用 electron-updater：它会要求打包成特定格式并依赖 main 里注入的
+ *   publish 配置，而我们的包是 Inno Setup 的 exe，直接下下来静默跑更省事，
+ *   也不引入任何新依赖。
+ * ★ 为什么走主进程而不是渲染层 fetch：渲染层拿不到落盘路径，也没法 spawn，
+ *   而且安装包几十 MB 塞进内存再转 base64 传过去毫无必要。 */
+
+const UPDATE_BASE = "https://cyancodex.bluestudio.cn";   // 版本接口给的 url 是相对路径
+const UPDATE_MAX_REDIRECT = 5;
+
+function updateAbsUrl(u) {
+  const s = String(u || "");
+  if (/^https?:\/\//i.test(s)) return s;
+  return UPDATE_BASE + (s.charAt(0) === "/" ? "" : "/") + s;
+}
+
+function sendUpdateProgress(payload) {
+  // 窗口可能已经被关掉（最小化到托盘时还在，直接关就没了），发之前确认一下
+  if (win && !win.isDestroyed()) win.webContents.send("update-progress", payload);
+}
+
+/* 打开一个 200 的响应流，中间把 3xx 跟到底。
+ * 为什么自己跟：官方下载走 CDN，302 到别的域名是常态，Node 的 https.get
+ * 不会自动跟随；而且不跟随就只能拿到一个空 body 的 3xx，落盘会是 0 字节。
+ * 每跟一次都要 res.resume()，否则跳转响应体不读完 socket 不释放，连接会漏。 */
+function openUpdateStream(urlStr, depth) {
+  return new Promise((resolve, reject) => {
+    let req;
+    try {
+      req = https.get(urlStr, {
+        headers: { "User-Agent": "CyanCodex/" + C.VERSION, Accept: "*/*" },
+      }, (res) => {
+        const code = res.statusCode || 0;
+        if (code >= 300 && code < 400 && res.headers.location) {
+          res.resume();
+          if (depth >= UPDATE_MAX_REDIRECT) { reject(new Error("重定向次数过多")); return; }
+          // location 可能是相对路径，同样交给 updateAbsUrl 归一
+          resolve(openUpdateStream(updateAbsUrl(res.headers.location), depth + 1));
+          return;
+        }
+        if (code !== 200) {
+          res.resume();
+          reject(new Error("下载失败，HTTP " + code));
+          return;
+        }
+        resolve(res);
+      });
+    } catch (e) {
+      reject(e);
+      return;
+    }
+    // 30s 无数据就断：既是连不上，也是下到一半卡死
+    req.setTimeout(30000, () => req.destroy(new Error("连接超时")));
+    req.on("error", (e) => reject(new Error("网络错误：" + e.message)));
+  });
+}
+
+ipcMain.handle("desktop:download-update", async (_e, url, md5, filename) => {
+  if (!url) return { ok: false, message: "缺少下载地址" };
+
+  // 文件名只取 basename：服务端字段不可信，避免 ../ 之类写到 temp 外面去
+  const safe = path.basename(String(filename || url).split("?")[0].split("#")[0]);
+  const name = /\.\w{2,5}$/.test(safe) ? safe : "CyanCodex-update.exe";
+  const dir = path.join(app.getPath("temp"), "cyancodex-update");
+  const dest = path.join(dir, name);
+  let out = null;
+
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (_) { /* 目录已存在 */ }
+
+  try {
+    const res = await openUpdateStream(updateAbsUrl(url), 0);
+    const total = Number(res.headers["content-length"] || 0);
+    const hash = crypto.createHash("md5");
+    let received = 0;
+    let lastSent = 0;
+
+    sendUpdateProgress({ received: 0, total, percent: 0 });
+
+    await new Promise((resolve, reject) => {
+      out = fs.createWriteStream(dest);
+      out.on("error", reject);
+      out.on("finish", resolve);       // finish 而不是 end：end 时还没落盘完
+      res.on("error", reject);
+      res.on("aborted", () => reject(new Error("连接中断")));
+
+      res.on("data", (chunk) => {
+        received += chunk.length;
+        hash.update(chunk);           // 边下边算，避免下完再读一遍整个文件
+        const now = Date.now();
+        // 限流到 ~8 次/秒：每个 chunk 都发一次 IPC 会把渲染进程灌满
+        if (now - lastSent > 120) {
+          lastSent = now;
+          sendUpdateProgress({
+            received,
+            total,
+            percent: total ? Math.min(99, Math.round((received / total) * 100)) : 0,
+          });
+        }
+      });
+
+      res.pipe(out);
+    });
+
+    const sum = hash.digest("hex");
+    if (md5 && sum.toLowerCase() !== String(md5).trim().toLowerCase()) {
+      try { fs.unlinkSync(dest); } catch (_) { /* 删不掉就算了 */ }
+      return { ok: false, message: "安装包校验失败（MD5 不一致），可能下载不完整" };
+    }
+
+    sendUpdateProgress({ received, total: total || received, percent: 100 });
+    return { ok: true, path: dest, md5: sum, size: received };
+  } catch (e) {
+    // 半截文件必须清掉，否则下次会拿着一个坏包去装
+    try { if (out) out.destroy(); } catch (_) { /* ignore */ }
+    try { fs.unlinkSync(dest); } catch (_) { /* ignore */ }
+    return { ok: false, message: (e && e.message) || "下载失败" };
+  }
+});
+
+ipcMain.handle("desktop:install-update", (_e, filePath) => {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return { ok: false, message: "安装包不存在，请重新下载" };
+  }
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== ".exe" && ext !== ".msi") {
+    return { ok: false, message: "不支持的安装包类型：" + ext };
+  }
+  try {
+    // detached + unref：安装器要活得比我们久，否则主进程一退它跟着被杀
+    const child = ext === ".msi"
+      ? spawn("msiexec", ["/i", filePath, "/qn"], { detached: true, stdio: "ignore" })
+      : spawn(filePath, ["/S"], { detached: true, stdio: "ignore" });
+    child.unref();
+    // quitting 必须置位：否则 close 事件会走「最小化到托盘」把窗口藏起来，
+    // 用户看到的是「点了安装，界面没了但进程还在」，安装器也会被托盘进程占着文件
+    setTimeout(() => { quitting = true; app.quit(); }, 400);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, message: e.message };
+  }
+});
+
 /* ---- 本地存储 ---- */
 ipcMain.handle("store:get", (_e, name, key, dflt) => store.open(name).get(key, dflt));
 ipcMain.handle("store:set", (_e, name, key, value) => store.open(name).set(key, value));
@@ -544,6 +723,7 @@ app.whenReady().then(async () => {
   }
 
   buildMenu();
+  require("./project-ipc")(ipcMain, () => win);
 
   // 静默启动（开机自启带的 --silent）：只进托盘不弹窗
   const silent = process.argv.includes("--silent");

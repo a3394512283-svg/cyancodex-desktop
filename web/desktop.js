@@ -2009,5 +2009,30 @@
   // 启动后静默同步一次（只在已登录时）
   setTimeout(function () { if (token()) doSync(true); }, 3500);
 
+  /* ★ 把公共工具挂到 window，供后续注入的 desktop-*.js 复用。
+     注入顺序见 electron/main.js 的 DESKTOP_SCRIPTS：desktop.js 必须最先跑。
+     这些模块各自独立文件，避免多人/多任务并行改同一个大文件时冲突。 */
+  window.__cc = {
+    CC: CC,
+    API_BASE: API_BASE,
+    S_CONVS: S_CONVS,
+    esc: esc,
+    toast: toast,
+    sheet: sheet,
+    mi: mi,
+    apiFetch: apiFetch,
+    clickNav: clickNav,
+    token: token,
+    user: user,
+    fmtNum: fmtNum,
+    fmtTime: fmtTime,
+    injectMoreRefresh: injectMoreRefresh,
+    renderHomeRefresh: renderHomeRefresh,
+    renderLibList: renderLibList,
+    openProfileSheet: openProfileSheet,
+    openPointsSheet: openPointsSheet,
+    openFeedDetail: openFeedDetail,
+  };
+
   console.log("[CyanCodex] 桌面增强层已加载");
 })();
