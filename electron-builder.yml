@@ -1,0 +1,93 @@
+# ============================================================================
+#  electron-builder 配置 —— 生成 Windows NSIS 安装程序
+#
+#  为什么单独一个文件而不是写在 package.json 里：
+#    NSIS 的选项多且互相影响（oneClick / perMachine / allowToChangeInstallationDirectory
+#    三个一起决定有没有向导、要不要管理员），单独放一处比塞在 package.json 的
+#    build 字段里更好读、也更好改。
+#
+#  安装形态：**按用户安装**（perMachine: false）
+#    → 装到 %LOCALAPPDATA%\Programs\CyanCodex，不弹 UAC，卸载也不需要管理员。
+#    → 对应地把安装目录写进 **HKCU** 的 Path，而不是系统 Path。
+# ============================================================================
+
+appId: com.canglan.cyancodex.desktop
+productName: CyanCodex
+copyright: Copyright © 2026 CanglanWorkshop
+
+directories:
+  # ★ 别用 dist-installer 这个名字：上一轮构建残留的 app.asar 会被 360/奇安信
+  #   的实时扫描锁住（EBUSY: resource busy or locked），后续构建删不掉。
+  #   换一个干净的输出目录最省事。
+  output: dist-setup
+  buildResources: build
+
+# 只打我们自己的代码。dependencies 是空的，devDependencies（electron /
+# electron-builder）不会被带进去。
+files:
+  - electron/**/*
+  - server/**/*
+  - cli/**/*
+  - core/**/*
+  - web/**/*
+  - build/icon.ico
+  - package.json
+  - "!**/*.map"
+  - "!**/.DS_Store"
+
+asar: true
+compression: maximum
+# 不要生成 .blockmap（增量更新用，我们走整包）
+nsis:
+  # ---- 安装向导 ----
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+
+  # ---- 语言与外观 ----
+  language: "2052"            # 简体中文
+  installerLanguages:
+    - zh_CN
+  license: build/LICENSE.txt
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico
+
+  # ---- 快捷方式 ----
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: CyanCodex
+  menuCategory: false
+
+  # ---- 收尾 ----
+  runAfterFinish: true
+  # 卸载时保留用户数据（对话记录、登录态、配置），重装后还在
+  deleteAppDataOnUninstall: false
+  uninstallDisplayName: CyanCodex ${version}
+  artifactName: CyanCodex-Setup-${version}-x64.${ext}
+
+  # 自定义脚本：安装时把目录加进用户 Path，卸载时摘掉
+  include: build/installer.nsh
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  # 不需要管理员权限，装到用户目录
+  requestedExecutionLevel: asInvoker
+  # 文件名里别带空格，命令行里好写
+  executableName: CyanCodex
+
+# 把 CLI 包装脚本放到安装根目录（和 CyanCodex.exe 同级）。
+# 安装时会把该目录写进用户 Path，所以 `cyancodex ...` 全局可用。
+extraFiles:
+  - from: build/cyancodex.cmd
+    to: cyancodex.cmd
+  - from: build/add-to-path.cmd
+    to: add-to-path.cmd
+
+# 不生成 win-unpacked 之外的额外产物
+publish: null

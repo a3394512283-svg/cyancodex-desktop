@@ -1,0 +1,34 @@
+# 依赖与构建产物
+node_modules/
+dist/
+dist-*/
+out/
+*.asar
+
+# 打包中间文件
+*.nsis.7z
+*.blockmap
+builder-debug.yml
+*.tmp
+
+# 测试与调试脚本（含本地测试账号，不随源码发布）
+_e2e*.mjs
+_smoke*.js
+*.log
+
+# 本地配置与凭据（绝不提交）
+config.json
+auth.json
+*.pfx
+*.p12
+*.pem
+*.key
+.env
+.env.*
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

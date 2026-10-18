@@ -1,0 +1,27 @@
+{
+  "name": "cyancodex-desktop",
+  "productName": "CyanCodex",
+  "version": "2.0.10",
+  "description": "CyanCodex 桌面版 —— Minecraft 基岩版指令助手（GUI + CLI）",
+  "main": "electron/main.js",
+  "bin": {
+    "cyancodex": "cli/index.js"
+  },
+  "scripts": {
+    "start": "electron .",
+    "gui": "electron .",
+    "serve": "node cli/index.js serve",
+    "cli": "node cli/index.js",
+    "pack": "node build/pack.js"
+  },
+  "author": "CanglanWorkshop",
+  "license": "GPL-3.0",
+  "private": true,
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-builder": "^26.15.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

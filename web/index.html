@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CyanCodex 二改版 — Minecraft 基岩版指令助手</title>
+<meta name="description" content="基于 CyanCodex 开源项目的二次修改版：新增云备份、限时免费 AI 助手与免费搜索，可与官方版共存安装。">
+<meta name="theme-color" content="#0E1512">
+<meta property="og:title" content="CyanCodex 二改版">
+<meta property="og:description" content="Minecraft 基岩版指令助手 · 二次修改版：云备份 + 限时免费 AI + 免费搜索">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://cyancodex.bluestudio.cn/web/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta property="og:image:type" content="image/png">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="/web/icon-192.png" sizes="192x192">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/web/manifest.json">
+<style>
+:root{
+  /* ★ 2026-10-17 对齐官方 cyancodex.cn 的配色与质感：
+     卡片是**半透明**的（配 backdrop-filter 做液态玻璃），边框是**绿色半透明**，
+     不是原来的实色卡片 + 灰边框。这两条是"风格不符"的主因。 */
+  --bg:#0B1512; --bg2:#0E1B16;
+  --surface:rgba(20,38,31,.62); --surface2:rgba(255,255,255,.04);
+  --line:rgba(74,222,128,.16);
+  --text:#E7F3EC; --text2:#9DB4A5; --text3:#6B8375;
+  --green:#4ADE80; --green-d:#22C55E; --gold:#FBBF24; --sky:#38BDF8;
+  --shadow:0 18px 50px rgba(0,0,0,.35);
+  --radius:16px; --max:1080px;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){
+  :root{
+    --bg:#F4F8F5; --bg2:#FFFFFF;
+    --surface:rgba(255,255,255,.74); --surface2:rgba(22,34,28,.05);
+    --line:rgba(22,163,74,.20);
+    --text:#0F1A15; --text2:#4E6156; --text3:#8A9A90;
+    --green:#16A34A; --green-d:#15803D; --gold:#B45309; --sky:#0284C7;
+    --shadow:0 18px 44px -18px rgba(16,34,28,.22);
+    color-scheme:light;
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",sans-serif;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  position:relative;
+}
+/* ---------- 液态玻璃光斑（与官方同款：blur 110px + 低透明度） ---------- */
+.bg-glow{
+  position:fixed;border-radius:50%;filter:blur(110px);opacity:.28;
+  pointer-events:none;z-index:0;
+}
+.bg-glow.g1{width:520px;height:520px;left:-140px;top:-120px;background:rgba(74,222,128,.55)}
+.bg-glow.g2{width:460px;height:460px;right:-120px;top:180px;background:rgba(56,189,248,.45)}
+.bg-glow.g3{width:420px;height:420px;left:32%;bottom:-180px;background:rgba(251,191,36,.34)}
+@media (prefers-color-scheme:light){ .bg-glow{opacity:.20} }
+/* 所有内容压在光斑之上 */
+.nav,.hero,section,footer{position:relative;z-index:1}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 22px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+
+/* ---------- 顶栏 ---------- */
+.nav{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:saturate(180%) blur(14px);-webkit-backdrop-filter:saturate(180%) blur(14px);
+  background:color-mix(in srgb,var(--bg) 78%,transparent);
+  border-bottom:1px solid var(--line);
+}
+.nav-in{display:flex;align-items:center;gap:14px;height:62px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px;color:var(--text)}
+.brand:hover{text-decoration:none}
+/* ★ 2026-10-17: 用真实的 App 图标，不再用内联 SVG 画个假的多边形 */
+.brand img{
+  width:30px;height:30px;flex:none;border-radius:9px;display:block;
+  box-shadow:0 6px 18px -6px rgba(34,197,94,.55);
+}
+.brand small{display:block;font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.6px;line-height:1.2}
+.nav-links{margin-left:auto;display:flex;align-items:center;gap:6px}
+.nav-links a{
+  color:var(--text2);font-size:14px;padding:7px 12px;border-radius:9px;
+  transition:background .16s,color .16s;
+}
+.nav-links a:hover{background:var(--surface2);color:var(--text);text-decoration:none}
+.nav-links a.cta{background:var(--green);color:#052E16;font-weight:600}
+.nav-links a.cta:hover{background:var(--green-d);color:#fff}
+@media(max-width:720px){.nav-links a:not(.cta){display:none}}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;padding:74px 0 60px;overflow:hidden}
+.hero::before{
+  content:"";position:absolute;inset:-30% -10% auto -10%;height:620px;pointer-events:none;
+  background:
+    radial-gradient(48% 46% at 22% 34%,rgba(74,222,128,.16),transparent 70%),
+    radial-gradient(42% 40% at 78% 22%,rgba(56,189,248,.11),transparent 70%),
+    radial-gradient(38% 36% at 60% 72%,rgba(251,191,36,.07),transparent 70%);
+  filter:blur(6px);
+}
+.hero .wrap{position:relative}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;
+  color:var(--green);background:color-mix(in srgb,var(--green) 12%,transparent);
+  border:1px solid color-mix(in srgb,var(--green) 30%,transparent);
+  padding:5px 12px;border-radius:99px;letter-spacing:.3px;
+}
+.pill i{width:6px;height:6px;border-radius:99px;background:var(--green);box-shadow:0 0 0 4px color-mix(in srgb,var(--green) 20%,transparent)}
+h1{
+  font-size:clamp(34px,5.4vw,58px);line-height:1.16;letter-spacing:-1.2px;
+  margin:20px 0 0;font-weight:800;
+}
+h1 em{font-style:normal;color:var(--green)}
+.sub{margin:18px 0 0;font-size:clamp(15px,1.7vw,18px);color:var(--text2);max-width:640px}
+
+/* ---------- h1 里的循环打字机 ----------
+   结构：一句话，<br>变成[一条指令]。
+   方括号里那个词由 home.js 循环打字 / 删除，光标是 2px 方块，530ms 硬切闪一次。 */
+.tw-wrap{white-space:nowrap}
+.caret{
+  display:inline-block;width:2px;height:.9em;margin-left:3px;border-radius:1px;
+  background:var(--green);vertical-align:-.06em;
+  animation:caretBlink 530ms step-end infinite;
+}
+@keyframes caretBlink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .caret{animation:none}
+}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.btn{
+  display:inline-flex;align-items:center;gap:9px;padding:12px 22px;border-radius:12px;
+  font-weight:650;font-size:15px;border:1px solid transparent;transition:transform .14s,background .16s,border-color .16s;
+}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+/* 主按钮用渐变 + 绿色光晕（官方同款），不是纯色块 */
+.btn-primary{
+  background:linear-gradient(135deg,var(--green-d),var(--green));
+  color:#04140C;font-weight:700;
+  box-shadow:0 8px 26px rgba(34,197,94,.28);
+}
+.btn-primary:hover{background:linear-gradient(135deg,var(--green),#86EFAC);color:#04140C}
+.btn-ghost{background:var(--surface);color:var(--text);border-color:var(--line)}
+.btn-ghost:hover{background:var(--surface2)}
+.btn svg{width:17px;height:17px}
+.meta-line{margin-top:16px;font-size:12.5px;color:var(--text3);display:flex;flex-wrap:wrap;gap:6px 16px}
+
+/* ---------- 通用区块 ---------- */
+section{padding:62px 0}
+.sec-head{max-width:640px;margin-bottom:34px}
+.kicker{font-size:12.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--green)}
+h2{font-size:clamp(25px,3.3vw,34px);line-height:1.25;letter-spacing:-.6px;margin:10px 0 0;font-weight:750}
+.sec-head p{margin:12px 0 0;color:var(--text2);font-size:15.5px}
+
+/* ---------- 三大亮点 ---------- */
+.highlights{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:860px){.highlights{grid-template-columns:1fr}}
+.hl{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:24px 22px;box-shadow:var(--shadow);overflow:hidden;
+}
+.hl::after{
+  content:"";position:absolute;inset:auto -40% -60% auto;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,color-mix(in srgb,var(--green) 16%,transparent),transparent 68%);
+  pointer-events:none;
+}
+.hl .tag{
+  display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.6px;
+  color:var(--gold);background:color-mix(in srgb,var(--gold) 13%,transparent);
+  border:1px solid color-mix(in srgb,var(--gold) 28%,transparent);
+  padding:2px 9px;border-radius:99px;margin-bottom:12px;
+}
+.hl h3{margin:0 0 8px;font-size:18px;font-weight:700;letter-spacing:-.2px}
+.hl p{margin:0;color:var(--text2);font-size:14.5px}
+
+/* ---------- 功能网格 ---------- */
+.feats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:960px){.feats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:520px){.feats{grid-template-columns:1fr}}
+.feat{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 18px;
+  transition:border-color .18s,transform .18s,background .18s;
+}
+.feat:hover{border-color:color-mix(in srgb,var(--green) 40%,var(--line));transform:translateY(-2px)}
+.glyph{
+  width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+  font-size:17px;font-weight:800;margin-bottom:13px;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--green) 22%,transparent),color-mix(in srgb,var(--sky) 14%,transparent));
+  color:var(--green);border:1px solid color-mix(in srgb,var(--green) 24%,transparent);
+}
+.feat h4{margin:0 0 6px;font-size:15.5px;font-weight:700}
+.feat p{margin:0;font-size:13.5px;color:var(--text2);line-height:1.65}
+
+/* ---------- 网页版横幅 ---------- */
+.web-banner{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--green) 13%,var(--surface)),var(--surface) 62%);
+  border:1px solid color-mix(in srgb,var(--green) 26%,var(--line));
+  border-radius:20px;padding:36px 34px;display:flex;align-items:center;gap:28px;flex-wrap:wrap;
+  box-shadow:var(--shadow);
+}
+.web-banner .txt{flex:1 1 380px}
+.web-banner h3{margin:0 0 10px;font-size:23px;letter-spacing:-.4px}
+.web-banner p{margin:0;color:var(--text2);font-size:14.5px}
+.web-banner .act{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- 下载 ---------- */
+.dl-card{
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:28px 26px;box-shadow:var(--shadow);
+}
+.dl-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.dl-icon{
+  width:52px;height:52px;border-radius:14px;display:grid;place-items:center;flex:none;
+  background:color-mix(in srgb,var(--green) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--green) 26%,transparent);color:var(--green);
+}
+.dl-icon svg{width:26px;height:26px}
+.dl-info{flex:1 1 260px;min-width:0}
+.dl-info b{display:block;font-size:17px}
+.dl-info span{font-size:13px;color:var(--text3)}
+.dl-note{
+  margin-top:20px;padding-top:18px;border-top:1px solid var(--line);
+  font-size:13px;color:var(--text3);line-height:1.8;
+}
+.dl-note code{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+  background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;
+  word-break:break-all;
+}
+.disabled{opacity:.55;pointer-events:none}
+
+/* ---------- 关于 / 合规 ---------- */
+.about{
+  background:var(--surface2);border:1px solid var(--line);border-radius:var(--radius);padding:28px 26px;
+}
+.about h3{margin:0 0 12px;font-size:18px}
+.about p{margin:0 0 12px;font-size:14.5px;color:var(--text2)}
+.about p:last-child{margin-bottom:0}
+.about strong{color:var(--text)}
+
+/* ---------- FAQ ---------- */
+.faq{display:grid;gap:12px}
+/* ---------- 液态玻璃统一收口 ----------
+   --surface 现在是半透明色，卡片必须配 backdrop-filter 才有"玻璃"质感；
+   不配就只是一块发灰的半透明块，反而不如实色干净。 */
+.hl,.dl-card,.about,.web-banner,details,.pill{
+  backdrop-filter:blur(12px) saturate(1.25);
+  -webkit-backdrop-filter:blur(12px) saturate(1.25);
+}
+/* 关于区原来是更淡的 surface2，玻璃化后统一到 surface，保持视觉一致 */
+.about{background:var(--surface)}
+details{
+  background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:16px 20px;
+}
+details[open]{border-color:color-mix(in srgb,var(--green) 32%,var(--line))}
+summary{
+  cursor:pointer;font-weight:650;font-size:15px;list-style:none;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--green);font-size:20px;font-weight:400;line-height:1;flex:none}
+details[open] summary::after{content:"–"}
+details p{margin:12px 0 0;font-size:14px;color:var(--text2);line-height:1.8}
+
+/* ---------- 页脚 ---------- */
+footer{border-top:1px solid var(--line);padding:38px 0 46px;margin-top:20px}
+.foot-in{display:flex;gap:26px;flex-wrap:wrap;justify-content:space-between;align-items:flex-start}
+.foot-brand{max-width:340px}
+.foot-brand .brand{margin-bottom:10px}
+.foot-brand p{margin:0;font-size:13px;color:var(--text3);line-height:1.75}
+.foot-links{display:flex;gap:44px;flex-wrap:wrap}
+.foot-col h5{margin:0 0 10px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text3)}
+.foot-col a{display:block;font-size:13.5px;color:var(--text2);padding:3px 0}
+.foot-col a:hover{color:var(--green)}
+.copy{margin-top:30px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--text3);display:flex;gap:14px;flex-wrap:wrap;justify-content:space-between}
+</style>
+</head>
+<body>
+
+<!-- 液态玻璃光斑（纯装饰，pointer-events:none） -->
+<div class="bg-glow g1"></div>
+<div class="bg-glow g2"></div>
+<div class="bg-glow g3"></div>
+
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a class="brand" href="/">
+      <img src="/web/icon-192.png" alt="CyanCodex" width="30" height="30">
+      <span>CyanCodex<small>二改版 · MOD</small></span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#web">网页版</a>
+      <a href="#download">下载</a>
+      <a href="#about">关于</a>
+      <a class="cta" href="#download">下载 App</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="pill"><i></i>Minecraft 基岩版 · 二次修改版</span>
+    <h1>一句话，<br>变成<span class="tw-wrap"><em id="tw">一条指令</em><i class="caret" aria-hidden="true"></i></span>。</h1>
+    <p class="sub">
+      基岩版指令助手。指令库、T显与计分板、穷举、滚动字幕、音乐生成、AI 助手 ——
+      该有的都在。二改版另加<strong>云备份</strong>、<strong>限时免费 AI</strong>
+      与<strong>免费搜索</strong>。
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="__APK_URL__" id="dlTop">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+        下载 APK
+      </a>
+      <a class="btn btn-ghost" href="/web">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg>
+        网页版 · 免安装
+      </a>
+    </div>
+    <div class="meta-line">
+      <span>版本 __APP_VERSION__</span>
+      <span>__APP_SIZE__</span>
+      <span>Android 8.0 及以上</span>
+      <span>可与官方版共存安装</span>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">What's new</div>
+      <h2>这个版本多做了什么</h2>
+      <p>原版的能力一个没少，另外补了三件玩家最常抱怨的事。</p>
+    </div>
+    <div class="highlights">
+      <div class="hl">
+        <span class="tag">云端</span>
+        <h3>设置云备份</h3>
+        <p>设置、偏好、提示词一次打包加密上传，换手机不用重新调一遍。口令只在你手上，服务端存的是密文。</p>
+      </div>
+      <div class="hl">
+        <span class="tag">免费</span>
+        <h3>限时免费 AI</h3>
+        <p>不用自己填 API Key，登录账号就能用。每天有固定次数，超了明天再来，作者替你出上游费用。</p>
+      </div>
+      <div class="hl">
+        <span class="tag">搜索</span>
+        <h3>免费联网搜索</h3>
+        <p>AI 需要查资料时直接联网，Key 放在服务端。同样登录即用，与对话额度分开计算。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Features</div>
+      <h2>从查指令到生成复杂 T 显</h2>
+      <p>全部在手机上完成，不需要电脑。</p>
+    </div>
+    <div class="feats">
+      <div class="feat"><div class="glyph">库</div><h4>指令库</h4><p>收录 + 用户上传，支持搜索、分类、收藏，一键复制到游戏。</p></div>
+      <div class="feat"><div class="glyph">显</div><h4>T显 / 计分板</h4><p>侧边栏计分板与 titleraw 字幕，填参数即出可用的命令方块指令。</p></div>
+      <div class="feat"><div class="glyph">举</div><h4>穷举生成器</h4><p>模板里写变量，一次展开成百上千条，批量工作交给它。</p></div>
+      <div class="feat"><div class="glyph">幕</div><h4>滚动字幕</h4><p>轮播公告或逐字盔甲架横幅，服务器活动提示随手就能做。</p></div>
+      <div class="feat"><div class="glyph">音</div><h4>音乐生成器</h4><p>音符网格转命令方块音乐，16 种乐器，支持循环播放。</p></div>
+      <div class="feat"><div class="glyph">J</div><h4>T显 JSON 编辑器</h4><p>可视化拼装 rawtext，实时预览玩家看到的效果。</p></div>
+      <div class="feat"><div class="glyph">AI</div><h4>AI 指令助手</h4><p>描述需求直接给指令，还能结合维基回答游戏问题。</p></div>
+      <div class="feat"><div class="glyph">坊</div><h4>插件工坊</h4><p>积木式做插件，一键打包 JAR，全程离线。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="web">
+  <div class="wrap">
+    <div class="web-banner">
+      <div class="txt">
+        <h3>不想装 App？先用网页版试试</h3>
+        <p>指令库与 5 个生成器完全在浏览器里运行，打开就能写。AI 助手可以填自己的 API Key 直连服务商；
+        想用免费通道，在 App 里登录即可。</p>
+      </div>
+      <div class="act">
+        <a class="btn btn-primary" href="/web">打开网页版</a>
+        <a class="btn btn-ghost" href="#download">下载 APK</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">Download</div>
+      <h2>下载</h2>
+      <p>安装包由本站直接分发，不经过第三方商店。</p>
+    </div>
+    <div class="dl-card">
+      <div class="dl-row">
+        <div class="dl-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg>
+        </div>
+        <div class="dl-info">
+          <b>Android · 二改版 v__APP_VERSION__</b>
+          <span>__APP_SIZE__ · Android 8.0 及以上 · 包名与官方版不同，无需卸载官方版</span>
+        </div>
+        <a class="btn btn-primary" href="__APK_URL__" id="dlMain">下载 APK</a>
+      </div>
+      <div class="dl-note">
+        <strong>二改版不需要覆盖官方版本安装，两个版本可以同时保留</strong> ——
+        因为包名不同（<span class="mono">com.canglan.cyancodex.com</span>），
+        Android 会把它们当成两个独立应用，装这个不会顶掉官方版，卸载任意一个也不影响另一个。<br>
+        安装时若提示「不允许安装未知应用」，允许一次即可。<br>
+        MD5：<code>__APP_MD5__</code><br>
+        更新说明：__APP_NOTES__
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="about">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">About</div>
+      <h2>关于这个版本</h2>
+    </div>
+    <div class="about">
+      <h3>它是二改，不是官方版</h3>
+      <p>
+        本应用是 <strong>CyanCodex</strong> 开源项目的<strong>二次修改版</strong>，
+        按 GPLv3 协议发布。原项目的著作权归原作者所有；本版本只增加了云备份、免费 AI 通道、
+        免费搜索等自建服务端能力，没有改动原版的收费体系。
+      </p>
+      <p>
+        <strong>想用原版、看完整功能、或者给作者反馈，请访问官方主页：</strong>
+        <a href="https://cyancodex.cn" target="_blank" rel="noopener noreferrer">cyancodex.cn</a>
+      </p>
+      <p>
+        <strong>为什么能和官方版共存：</strong>本版的包名是
+        <span class="mono">com.canglan.cyancodex.com</span>，官方版是另一个包名。
+        Android 用包名区分应用，所以这两者被视为两个独立应用 ——
+        <strong>二改版无需覆盖官方版本安装，可以同时保留</strong>，各自的数据也互不影响。
+        卸载本版不会删除官方版的存档、设置或账号。
+      </p>
+      <p>
+        本版本不提供开放 API、开发者平台与插件 SDK —— 那些是官方站点的能力，
+        需要请直接使用官方服务。本页也不代表官方立场。
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="kicker">FAQ</div>
+      <h2>常见问题</h2>
+    </div>
+    <div class="faq">
+      <details>
+        <summary>装了这个会不会把官方版覆盖掉？</summary>
+        <p><strong>不会。</strong>二改版用的是独立包名
+        <span class="mono">com.canglan.cyancodex.com</span>，与官方版不同，
+        Android 会把它们当成两个应用。所以<strong>无需卸载官方版，两个版本可以同时安装、同时保留</strong>；
+        卸载其中任意一个，另一个照常使用，数据也不会互相影响。</p>
+      </details>
+      <details>
+        <summary>和官方版有什么区别？</summary>
+        <p>原版功能全部保留，另外加了云备份、限时免费 AI 和免费搜索 —— 这三项由本站的服务端提供，
+        所以需要登录账号。包名不同，可以和官方版同时安装。</p>
+      </details>
+      <details>
+        <summary>免费 AI 有次数限制吗？</summary>
+        <p>有，按账号每天计。额度由服务端控制，页面上会显示今日剩余次数。用完了第二天自动恢复，
+        也可以在自己的 Key 里填第三方服务继续用。</p>
+      </details>
+      <details>
+        <summary>云备份安全吗？</summary>
+        <p>备份内容在手机上先用你的口令做 AES-GCM 加密，再压缩上传。服务端只存密文，
+        口令不离开设备 —— 忘了口令就解不开，这是设计如此。</p>
+      </details>
+      <details>
+        <summary>网页版和 App 数据互通吗？</summary>
+        <p>不互通，各存各的。网页版的对话记录只保存在你自己的浏览器里（localStorage），
+        换设备或清缓存就没了；App 的数据在手机上，开启云端同步后可在 App 之间互通。
+        网页版提供指令库、5 个生成器与 AI 助手（免费通道需在 App 登录，或用自己的 API Key 直连），
+        插件工坊、悬浮窗、聊天室这些仍然只在 App 里。</p>
+      </details>
+      <details>
+        <summary>为什么安装时提示风险？</summary>
+        <p>因为安装包不是从应用商店分发的。允许一次「安装未知应用」即可，签名与更新都由本站自己维护。</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-in">
+      <div class="foot-brand">
+        <a class="brand" href="/">
+          <img src="/web/icon-192.png" alt="CyanCodex" width="30" height="30">
+          <span>CyanCodex<small>二改版 · MOD</small></span>
+        </a>
+        <p>基于 CyanCodex 开源项目的二次修改版，按 GPLv3 发布。<br>与官方版本无隶属关系。</p>
+      </div>
+      <div class="foot-links">
+        <div class="foot-col">
+          <h5>本站</h5>
+          <a href="/web">网页版</a>
+          <a href="#download">下载 APK</a>
+          <a href="#features">功能</a>
+          <a href="#about">关于</a>
+        </div>
+        <div class="foot-col">
+          <h5>官方</h5>
+          <a href="https://cyancodex.cn" target="_blank" rel="noopener noreferrer">cyancodex.cn</a>
+          <a href="https://git.cyancodex.cn/" target="_blank" rel="noopener noreferrer">开源源码</a>
+          <a href="https://cyancodex.cn/guide.html" target="_blank" rel="noopener noreferrer">使用教程</a>
+        </div>
+      </div>
+    </div>
+    <div class="copy">
+      <span>© 2026 CyanCodex · 二改版</span>
+      <span>原项目 CyanCodex 版权归原作者 · GPLv3</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/web/home.js?v=20261017c"></script>
+</body>
+</html>

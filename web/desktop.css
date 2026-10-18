@@ -1,0 +1,580 @@
+/* ============================================================================
+ * web/desktop.css —— 只在桌面壳里注入
+ *
+ * 网页版的桌面布局（≥1024px 左侧导航那套）已经在 style.css 里了，这里只补
+ * 「应用感」的细节：更细的滚动条、可拖动的空白区、右下角工具条。
+ * ========================================================================== */
+
+/* 整条顶栏当窗口拖动区（按钮仍然可点） */
+html[data-desktop="1"] .topbar {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+html[data-desktop="1"] .topbar button,
+html[data-desktop="1"] .topbar a,
+html[data-desktop="1"] .topbar input,
+html[data-desktop="1"] .topbar .brand {
+  -webkit-app-region: no-drag;
+}
+
+/* 桌面滚动条：更细、更克制 */
+html[data-desktop="1"] ::-webkit-scrollbar { width: 10px; height: 10px; }
+html[data-desktop="1"] ::-webkit-scrollbar-track { background: transparent; }
+html[data-desktop="1"] ::-webkit-scrollbar-thumb {
+  background: rgba(125, 155, 140, .32);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+html[data-desktop="1"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 155, 140, .55);
+  background-clip: content-box;
+}
+
+/* 图片不要被拖动选中 */
+html[data-desktop="1"] img { -webkit-user-drag: none; }
+
+/* ---------------------------------------------------- 右下角工具条 */
+
+#cc-dsk-tools {
+  position: fixed;
+  right: 12px;
+  bottom: 14px;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 5px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--bg2) 88%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .22);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  opacity: .38;
+  transition: opacity .18s;
+}
+#cc-dsk-tools:hover { opacity: 1; }
+
+#cc-dsk-tools button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text2);
+  font: inherit;
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+#cc-dsk-tools button:hover {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+#cc-dsk-tools button:active { transform: scale(.94); }
+#cc-dsk-tools svg { width: 16px; height: 16px; }
+/* 竖排图标模式：文字只留给 tooltip，避免压住页面底部内容 */
+#cc-dsk-tools span { display: none; }
+
+/* ---------------------------------------------------- 轻提示 */
+
+#cc-dsk-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 76px;
+  transform: translate(-50%, 8px);
+  z-index: 300;
+  max-width: 70vw;
+  padding: 9px 16px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--card) 96%, transparent);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12.5px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .24);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+}
+#cc-dsk-toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* AI 输入区给工具条让出一点空间，避免遮挡 */
+html[data-desktop="1"] .composer .inner { padding-bottom: 2px; }
+
+/* ============================================================================
+ * 桌面版专属：账号卡 / 开关 / 积分列表 / 拖拽遮罩
+ * 全部走 style.css 里的 CSS 变量，浅色深色主题自动跟随
+ * ========================================================================== */
+
+.cc-dsk-acc-card { padding: 14px 15px; }
+
+.cc-dsk-acc-head {
+  display: flex; align-items: center; gap: 11px; margin-bottom: 12px;
+}
+.cc-dsk-avatar {
+  flex: none; width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center;
+  font-size: 16px; font-weight: 800;
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+  border: 1px solid color-mix(in srgb, var(--green) 30%, var(--line));
+}
+.cc-dsk-acc-id { flex: 1; min-width: 0; }
+.cc-dsk-acc-id b { display: block; font-size: 14.5px; letter-spacing: -.2px; }
+.cc-dsk-acc-id small { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+
+.cc-dsk-acc-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.cc-dsk-acc-foot {
+  margin-top: 10px; font-size: 11.5px; color: var(--text3);
+}
+
+/* 开关：用纯 CSS 画，不引图标 */
+.cc-dsk-switch {
+  flex: none; width: 36px; height: 20px; border-radius: 99px;
+  background: var(--line); position: relative; transition: background .18s;
+}
+.cc-dsk-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.28);
+  transition: transform .18s;
+}
+.cc-dsk-switch.on { background: var(--green); }
+.cc-dsk-switch.on::after { transform: translateX(16px); }
+
+/* 积分列表 */
+.cc-dsk-sheet-body { min-height: 60px; }
+.cc-dsk-points { display: flex; flex-direction: column; }
+.cc-dsk-pt-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 2px; border-bottom: 1px solid var(--line);
+}
+.cc-dsk-pt-row:last-child { border-bottom: 0; }
+.cc-dsk-pt-row .t { flex: 1; min-width: 0; font-size: 13px; }
+.cc-dsk-pt-row .t small { display: block; font-size: 11px; color: var(--text3); margin-top: 2px; }
+.cc-dsk-pt-row .v {
+  flex: none; font-size: 13.5px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cc-dsk-pt-row .v.up { color: var(--green); }
+.cc-dsk-pt-row .v.down { color: var(--red, #f87171); }
+
+.cc-dsk-sheet-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.cc-dsk-loading, .cc-dsk-empty {
+  padding: 26px 0; text-align: center; font-size: 12.5px; color: var(--text3);
+}
+
+/* 拖拽文件进来时的整屏提示 */
+body.cc-dsk-dragging::after {
+  content: "松手导入到 AI 输入框";
+  position: fixed; inset: 0; z-index: 999;
+  display: grid; place-items: center;
+  font-size: 15px; font-weight: 700; color: var(--green);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border: 2px dashed color-mix(in srgb, var(--green) 55%, transparent);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
+}
+
+/* ============================================================================
+ * 桌面版首页（对齐 App HomeScreen）
+ * 结构：主卡（头像/积分/签到/公告条）→ 功能宫格 → 公告列表
+ * ========================================================================== */
+
+.cc-dsk-hero {
+  padding: 18px 18px 15px;
+  border-radius: 20px;
+  background: linear-gradient(140deg,
+    color-mix(in srgb, var(--green) 18%, var(--card)) 0%,
+    color-mix(in srgb, var(--green) 6%, var(--card)) 100%);
+  border: 1px solid color-mix(in srgb, var(--green) 22%, var(--line));
+}
+.cc-dsk-hero-top { display: flex; align-items: center; gap: 13px; }
+.cc-dsk-avatar.lg {
+  width: 50px; height: 50px; border-radius: 15px; font-size: 20px;
+}
+.cc-dsk-hero-id { flex: 1; min-width: 0; }
+.cc-dsk-hero-id > b { display: block; font-size: 19px; letter-spacing: -.4px; }
+.cc-dsk-badges { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+
+.cc-dsk-badge {
+  border: 1px solid color-mix(in srgb, var(--green) 30%, var(--line));
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  color: var(--green);
+  font: inherit; font-size: 11.5px; font-weight: 700;
+  padding: 3px 10px; border-radius: 99px; cursor: pointer;
+  transition: background .14s;
+}
+.cc-dsk-badge:hover { background: color-mix(in srgb, var(--green) 22%, transparent); }
+.cc-dsk-badge.done {
+  color: var(--text3);
+  border-color: var(--line);
+  background: transparent;
+  cursor: default;
+}
+
+.cc-dsk-hero-sub {
+  margin: 13px 0 0; font-size: 12.5px; color: var(--text2);
+}
+
+.cc-dsk-banner {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%; margin-top: 12px; padding: 9px 12px;
+  border-radius: 11px; cursor: pointer; text-align: left;
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid var(--line);
+  color: var(--text2); font: inherit; font-size: 12px;
+}
+.cc-dsk-banner:hover { border-color: color-mix(in srgb, var(--green) 40%, var(--line)); }
+.cc-dsk-banner b { color: var(--text); font-weight: 700; flex: none; }
+.cc-dsk-banner span {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 功能宫格：桌面 4 列，窄屏 2 列 */
+.cc-dsk-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .cc-dsk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.cc-dsk-mod {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 13px 14px; border-radius: 14px; cursor: pointer; text-align: left;
+  background: var(--card); border: 1px solid var(--line);
+  color: var(--text); font: inherit;
+  transition: border-color .16s, background .16s, transform .12s;
+  min-width: 0;
+}
+.cc-dsk-mod:hover {
+  border-color: color-mix(in srgb, var(--green) 45%, var(--line));
+  background: color-mix(in srgb, var(--green) 7%, var(--card));
+}
+.cc-dsk-mod:active { transform: scale(.985); }
+.cc-dsk-mod .ico {
+  display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 9px; margin-bottom: 5px;
+  font-size: 12px; font-weight: 800;
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+  color: var(--green);
+}
+.cc-dsk-mod b { font-size: 13.5px; letter-spacing: -.2px; }
+.cc-dsk-mod small {
+  font-size: 11px; color: var(--text3); line-height: 1.4;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
+}
+
+/* 公告 */
+.cc-dsk-notice-card { padding: 4px 15px; }
+.cc-dsk-notice-item {
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+}
+.cc-dsk-notice-item:last-child { border-bottom: 0; }
+.cc-dsk-notice-item b { font-size: 13px; display: block; margin-bottom: 4px; }
+.cc-dsk-notice-item p {
+  margin: 0; font-size: 12px; color: var(--text2); line-height: 1.65;
+  white-space: pre-wrap; word-break: break-word;
+}
+.cc-dsk-notice-item small { display: block; margin-top: 5px; font-size: 10.5px; color: var(--text3); }
+.cc-dsk-notice-item.warn b { color: var(--gold, #fbbf24); }
+.cc-dsk-notice-item.danger b { color: var(--red, #f87171); }
+
+/* 编辑器 / 表单 */
+.cc-dsk-ta {
+  width: 100%; box-sizing: border-box;
+  font: 12.5px/1.65 ui-monospace, Menlo, Consolas, monospace;
+  background: var(--bg2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 12px; resize: vertical; outline: none;
+}
+.cc-dsk-ta:focus { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+.cc-dsk-ed-stat { margin-top: 9px; font-size: 11.5px; color: var(--text3); }
+
+.cc-dsk-fld { margin-bottom: 11px; }
+.cc-dsk-fld > label { display: block; font-size: 12px; color: var(--text3); margin-bottom: 5px; }
+.cc-dsk-fld input, .cc-dsk-fld select {
+  width: 100%; box-sizing: border-box;
+  background: var(--bg2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 9px;
+  padding: 9px 11px; font: inherit; font-size: 13px; outline: none;
+}
+.cc-dsk-fld input:focus, .cc-dsk-fld select:focus {
+  border-color: color-mix(in srgb, var(--green) 50%, var(--line));
+}
+
+/* 测速 */
+.cc-dsk-speed { display: flex; flex-direction: column; gap: 2px; }
+.cc-dsk-speed .row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 2px; border-bottom: 1px solid var(--line);
+}
+.cc-dsk-speed .row:last-child { border-bottom: 0; }
+.cc-dsk-speed .row span { font-size: 12.5px; color: var(--text2); }
+.cc-dsk-speed .row b {
+  font-size: 13.5px; font-variant-numeric: tabular-nums;
+}
+.cc-dsk-hint { margin-top: 10px; font-size: 11px; color: var(--text3); line-height: 1.6; }
+
+/* 五子棋 */
+.cc-gm-board {
+  display: grid; gap: 1px; margin: 4px 0 12px;
+  background: color-mix(in srgb, var(--green) 22%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--green) 30%, var(--line));
+  border-radius: 10px; overflow: hidden;
+  aspect-ratio: 1 / 1; width: 100%;
+}
+.cc-gm-cell {
+  border: 0; padding: 0; cursor: pointer; position: relative;
+  background: color-mix(in srgb, var(--card) 92%, transparent);
+  transition: background .12s;
+}
+.cc-gm-cell:hover { background: color-mix(in srgb, var(--green) 18%, var(--card)); }
+.cc-gm-cell.black::after, .cc-gm-cell.white::after {
+  content: ""; position: absolute; inset: 16%; border-radius: 50%;
+}
+.cc-gm-cell.black::after { background: #111; box-shadow: inset 0 -1px 2px rgba(255,255,255,.18); }
+.cc-gm-cell.white::after { background: #f4f4f5; box-shadow: inset 0 -1px 2px rgba(0,0,0,.18); }
+.cc-gm-foot {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12.5px; color: var(--text2);
+}
+
+/* 更多页小件 */
+.cc-dsk-newver {
+  font-size: 11px; font-weight: 700; color: var(--green);
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  padding: 1px 7px; border-radius: 99px; margin-left: 6px;
+}
+.cc-dsk-about-acts { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 11px; }
+
+/* ============================================================================
+ * 对齐 App：聊天室 / 开发者功能 / 宝贝回家 / 广场 / 聊天
+ * 全部按 HomeScreen 与各页面截图还原
+ * ========================================================================== */
+
+/* 首页两行入口（聊天室、开发者功能） */
+.cc-dsk-row {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 14px 16px; margin-top: 12px; border-radius: 18px;
+  cursor: pointer; text-align: left; font: inherit; color: var(--text);
+  border: 1px solid transparent;
+  transition: filter .16s;
+}
+.cc-dsk-row:hover { filter: brightness(1.06); }
+.cc-dsk-row.chat {
+  background: color-mix(in srgb, var(--green) 13%, var(--card));
+  border-color: color-mix(in srgb, var(--green) 22%, var(--line));
+}
+.cc-dsk-row.dev {
+  background: var(--card2, #F1F6F3);
+  border-color: var(--line);
+}
+.cc-dsk-row .ico {
+  flex: none; width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 17px;
+  background: color-mix(in srgb, var(--green) 16%, transparent);
+}
+.cc-dsk-row .t { flex: 1; min-width: 0; }
+.cc-dsk-row .t b { display: block; font-size: 15px; letter-spacing: -.2px; }
+.cc-dsk-row .t b i {
+  font-style: normal; font-size: 10.5px; font-weight: 700;
+  color: var(--green); background: color-mix(in srgb, var(--green) 15%, transparent);
+  padding: 1px 6px; border-radius: 5px; margin-left: 6px; vertical-align: 1px;
+}
+.cc-dsk-row .t small {
+  display: block; font-size: 11.5px; color: var(--text3); margin-top: 3px;
+}
+.cc-dsk-row .tail { flex: none; color: var(--text3); font-size: 15px; }
+
+/* 宝贝回家跑马灯 */
+.cc-dsk-kids {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  margin-top: 14px; padding: 9px 12px; border-radius: 10px;
+  background: color-mix(in srgb, var(--green) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--green) 20%, var(--line));
+  font: inherit; font-size: 11.5px; color: var(--text2);
+  cursor: pointer; text-align: left; overflow: hidden;
+}
+.cc-dsk-kids b { flex: none; color: var(--green); font-weight: 700; }
+.cc-dsk-kids span {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cc-dsk-kids i { flex: none; font-style: normal; color: var(--green); font-weight: 700; }
+
+/* 广场 feed */
+.cc-dsk-feed { display: flex; flex-direction: column; gap: 10px; }
+.cc-dsk-feed-item {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 16px; padding: 13px 15px;
+}
+.cc-dsk-feed-item .hd {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px;
+}
+.cc-dsk-feed-item .hd b { font-size: 13px; color: var(--green); }
+.cc-dsk-feed-item .hd small { font-size: 10.5px; color: var(--text3); }
+.cc-dsk-feed-item .tt { display: block; font-size: 14px; margin-bottom: 3px; }
+.cc-dsk-feed-item .sub { margin: 0 0 4px; font-size: 12.5px; color: var(--text2); }
+.cc-dsk-feed-item .body { margin: 0; font-size: 13px; line-height: 1.7; }
+.cc-dsk-feed-item .meta {
+  display: flex; gap: 14px; margin-top: 9px;
+  font-size: 11.5px; color: var(--text3);
+}
+
+/* 聊天室 */
+.cc-dsk-chat {
+  max-height: 52vh; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;
+  padding-right: 2px;
+}
+.cc-dsk-chat-row {
+  padding: 8px 11px; border-radius: 11px;
+  background: var(--card2, #F1F6F3); border: 1px solid var(--line);
+  font-size: 12.5px; line-height: 1.6;
+}
+.cc-dsk-chat-row.me {
+  background: color-mix(in srgb, var(--green) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--green) 25%, var(--line));
+}
+.cc-dsk-chat-row b { color: var(--green); font-size: 11.5px; margin-right: 6px; }
+.cc-dsk-chat-row small { display: block; font-size: 10px; color: var(--text3); margin-top: 3px; }
+.cc-dsk-chat-bar { display: flex; gap: 8px; margin-top: 12px; }
+.cc-dsk-chat-bar input {
+  flex: 1; min-width: 0; background: var(--bg2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 9px 12px; font: inherit; font-size: 13px; outline: none;
+}
+.cc-dsk-chat-bar input:focus { border-color: color-mix(in srgb, var(--green) 50%, var(--line)); }
+
+/* 宝贝回家弹层 */
+.cc-dsk-kids-list { display: flex; flex-direction: column; gap: 10px; }
+.cc-dsk-kid {
+  padding: 11px 13px; border-radius: 12px;
+  background: var(--card2, #F1F6F3); border: 1px solid var(--line);
+}
+.cc-dsk-kid b { font-size: 13px; }
+.cc-dsk-kid small { font-size: 11px; color: var(--text3); margin-left: 8px; }
+.cc-dsk-kid p { margin: 5px 0 0; font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* 底部导航 6 列时文字更小 */
+html[data-desktop="1"] .bottom-nav { grid-template-columns: repeat(6, 1fr); }
+
+/* ============================================================================
+ * 指令库（对齐 App LibraryScreen）
+ * 搜索框 + 6 个 tab（平台/高质/低质/我的/收藏/教程）+ 卡片 + 上传
+ * ========================================================================== */
+
+.cc-lib-top { display: flex; gap: 10px; align-items: center; margin-bottom: 4px; }
+.cc-lib-search {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px;
+  padding: 9px 13px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line);
+  color: var(--text3);
+}
+.cc-lib-search input {
+  flex: 1; min-width: 0; background: none; border: 0; outline: none;
+  color: var(--text); font: inherit; font-size: 13.5px;
+}
+.cc-lib-search:focus-within { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+
+.cc-lib-tabs {
+  display: flex; gap: 4px; margin: 12px 0 14px;
+  border-bottom: 1px solid var(--line); overflow-x: auto;
+}
+.cc-lib-tab {
+  flex: none; border: 0; background: none; cursor: pointer;
+  padding: 9px 14px 10px; font: inherit; font-size: 13px; font-weight: 600;
+  color: var(--text3); position: relative; white-space: nowrap;
+}
+.cc-lib-tab:hover { color: var(--text); }
+.cc-lib-tab.on { color: var(--green); }
+.cc-lib-tab.on::after {
+  content: ""; position: absolute; left: 50%; bottom: -1px; transform: translateX(-50%);
+  width: 22px; height: 2.5px; border-radius: 3px 3px 0 0; background: var(--green);
+}
+
+.cc-lib-list { display: flex; flex-direction: column; gap: 10px; }
+.cc-lib-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px 16px; cursor: default;
+}
+.cc-lib-card > b { display: block; font-size: 14.5px; margin-bottom: 4px; }
+.cc-lib-card > p { margin: 0 0 7px; font-size: 12.5px; color: var(--text2); line-height: 1.6; }
+.cc-lib-card .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.cc-lib-card .tags i {
+  font-style: normal; font-size: 10.5px; font-weight: 700;
+  padding: 2px 7px; border-radius: 5px;
+  background: var(--card2, #F1F6F3); color: var(--text3);
+}
+.cc-lib-card .tags i.t-hi { color: var(--green); background: color-mix(in srgb, var(--green) 14%, transparent); }
+.cc-lib-card .tags i.t-plat { color: var(--sky, #38BDF8); background: color-mix(in srgb, var(--sky, #38BDF8) 14%, transparent); }
+.cc-lib-card .tags i.t-paid { color: var(--gold, #FBBF24); background: color-mix(in srgb, var(--gold, #FBBF24) 14%, transparent); }
+.cc-lib-card .tags i.t-pend { color: var(--gold, #FBBF24); }
+.cc-lib-card .tags i.t-rej { color: var(--red, #F87171); }
+.cc-lib-card pre.code {
+  margin: 0 0 9px; padding: 9px 11px; border-radius: 9px;
+  background: var(--bg2); border: 1px solid var(--line);
+  font: 12px/1.6 ui-monospace, Menlo, Consolas, monospace; color: var(--text2);
+  white-space: pre-wrap; word-break: break-word; overflow: hidden;
+}
+.cc-lib-card .meta {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-size: 11.5px; color: var(--text3);
+}
+.cc-lib-card .meta .r { display: flex; align-items: center; gap: 8px; }
+.cc-lib-cp {
+  border: 1px solid var(--line); background: transparent; color: var(--text3);
+  font: inherit; font-size: 11px; padding: 2px 8px; border-radius: 6px; cursor: pointer;
+}
+.cc-lib-cp:hover { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, var(--line)); }
+
+/* ============================================================================
+ * 通用列表行：查询 ID / 设备 / 绑定 / 好友 / 插件 / 充值
+ * ========================================================================== */
+.cc-ref-list { display: flex; flex-direction: column; gap: 2px; }
+.cc-ref-row {
+  padding: 10px 2px; border-bottom: 1px solid var(--line);
+}
+.cc-ref-row:last-child { border-bottom: 0; }
+.cc-ref-row b { display: block; font-size: 13.5px; }
+.cc-ref-row small { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.cc-ref-row .ids {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 7px;
+}
+.cc-ref-row .ids code {
+  font: 12px/1 ui-monospace, Menlo, Consolas, monospace;
+  padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  background: var(--bg2); border: 1px solid var(--line); color: var(--green);
+}
+.cc-ref-row .ids code:hover { border-color: color-mix(in srgb, var(--green) 45%, var(--line)); }
+
+.cc-rc-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 13px 2px; border-bottom: 1px solid var(--line);
+}
+.cc-rc-row:last-child { border-bottom: 0; }
+.cc-rc-row .l b { display: block; font-size: 13.5px; }
+.cc-rc-row .l small { display: block; font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.cc-rc-row .r { flex: none; font-size: 15px; font-weight: 800; color: var(--gold, #FBBF24); }
+
+/* ============================================================================
+ * 侧栏副标题：桌面版不该叫「网页版」
+ * ★ 用 CSS 覆盖而不是改 JS：JS 会被后续渲染覆盖，CSS 一定生效。
+ * ========================================================================== */
+html[data-desktop="1"] .brand small {
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+html[data-desktop="1"] .brand small::after {
+  content: "桌面版";
+  font-size: 10.5px;
+  line-height: 1.4;
+  letter-spacing: .4px;
+  font-weight: 500;
+  color: var(--text3);
+}
