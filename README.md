@@ -2,11 +2,33 @@
 
 Minecraft 基岩版指令助手 —— Windows 桌面客户端（GUI + CLI）。
 
-基于 [CyanCodex](https://cyancodex.cn)（原项目：[Diamond-Minec/CyanCodex-Android](https://github.com/Diamond-Minec/CyanCodex-Android)，GPLv3）的**桌面端二改版**，
-与官方 Android 版共用同一套账号与接口，但界面与交互按桌面场景重做。
+## 这个仓库不是 fork
 
-> 本项目由**沧蓝工坊成员**维护，基于官方开源代码继续开发。
-> **非官方发布**，不代表沧蓝工坊官方立场或背书。原项目著作权归原作者所有。
+CyanCodex 官方只有 Android 端和网页端，**从未发布过 Windows 客户端**。
+本仓库是为该生态**新增**的桌面端，从零实现（Electron + CLI），
+复用官方公开的 API 与账号体系，不含上游 Android 代码。
+
+> 换句话说：安卓仓库是「改上游」，这里是「新做一个端」。两者定位不同，所以这里没有 fork 关系。
+
+## 相关仓库
+
+| 仓库 | 定位 |
+| --- | --- |
+| **[cyancodex-desktop](https://github.com/a3394512283-svg/cyancodex-desktop)** | 本仓库 · Windows 桌面端（独立实现） |
+| [CyanCodex-Android](https://github.com/a3394512283-svg/CyanCodex-Android) | 安卓版二改（上游 fork，含完整 `app/` + `web/`） |
+| [Diamond-Minec/CyanCodex-Android](https://github.com/Diamond-Minec/CyanCodex-Android) | 上游原项目（GPL-3.0） |
+
+## 维护声明
+
+> 本项目由**沧蓝工坊成员**维护。**非官方发布**，不代表沧蓝工坊官方立场或背书。
+> 原项目著作权归原作者所有，本项目按 GPLv3 发布。
+
+## 分支
+
+| 分支 | 用途 |
+| --- | --- |
+| `main` | 稳定版，对应已发布的安装包 |
+| `dev` | 开发分支，改动先进这里，稳定后合回 `main` |
 
 ## 功能
 
