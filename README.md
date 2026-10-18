@@ -5,7 +5,8 @@ Minecraft 基岩版指令助手 —— Windows 桌面客户端（GUI + CLI）。
 基于 [CyanCodex](https://cyancodex.cn)（原项目：[Diamond-Minec/CyanCodex-Android](https://github.com/Diamond-Minec/CyanCodex-Android)，GPLv3）的**桌面端二改版**，
 与官方 Android 版共用同一套账号与接口，但界面与交互按桌面场景重做。
 
-> 本项目与 CyanCodex 官方无隶属关系，是社区二改。原项目著作权归原作者所有。
+> 本项目由**沧蓝工坊成员**维护，基于官方开源代码继续开发。
+> **非官方发布**，不代表沧蓝工坊官方立场或背书。原项目著作权归原作者所有。
 
 ## 功能
 
@@ -72,5 +73,5 @@ node build/pack.js        # 生成安装包（需要 electron-builder）
 
 ## 免责声明
 
-本项目是第三方二改，非官方发布。使用本软件产生的任何问题（包括但不限于账号、积分、
+本项目由沧蓝工坊成员维护，但**不是官方发布**。使用本软件产生的任何问题（包括但不限于账号、积分、
 游戏内效果）由使用者自行承担，与原作者及本项目维护者无关。
