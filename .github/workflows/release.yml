@@ -1,0 +1,74 @@
+# ============================================================================
+#  Build + Sign —— 用 SignPath Foundation 的免费开源签名
+#
+#  流程：Windows runner 构建未签名产物 → 上传为 artifact → 交给 SignPath 签
+#        → 下载签好名的产物 → 再上传成 artifact
+#
+#  ★ 为什么必须走 CI：SignPath 验证的是「这个二进制确实从你的公开仓库构建出来」，
+#    所以签名请求必须由 CI 发起，产物必须由 CI 产生。本地打包的 exe 签不了。
+#  ★ 需要在仓库里配：
+#      Secrets: SIGNPATH_API_TOKEN
+#      Variables: SIGNPATH_ORG_ID
+#    以及下面 with: 里的三个 slug（在 SignPath 后台建好后填）
+# ============================================================================
+name: Build and Sign
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # electron 从 GitHub 下载在国内/部分网络会很慢，走镜像更稳
+      - name: Build (portable, unsigned)
+        env:
+          ELECTRON_MIRROR: https://npmmirror.com/mirrors/electron/
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://npmmirror.com/mirrors/electron-builder-binaries/
+        run: npx electron-builder --win portable --publish never
+
+      - name: Upload unsigned artifact
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned
+          path: dist/*.exe
+          if-no-files-found: error
+
+      # 关键一步：把产物交给 SignPath
+      - name: Submit signing request
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORG_ID }}
+          project-slug: cyancodex-desktop
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: windows-portable
+          github-artifact-id: ${{ steps.upload.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Upload signed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: signed
+          path: signed/
+          if-no-files-found: error
